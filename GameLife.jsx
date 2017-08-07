@@ -78,21 +78,52 @@ const coordinatesInRange = R.converge(R.xprod, [R.range, R.range]) //really mean
 
 // cloneAndFlip :: Function -> [Function, Function]
 const cloneAndFlip =(func) => [func, R.flip(func)]
+//if func is / then with a and b as args we get [a/b, b/a]
+//for asscoiative functions like * and + there is no need to call this
 
-// neighboursOfDist :: Integer -> [[Integer]]
-const neighboursOfDist=  (n) => {
-    const borders = [-n, n];
-    const everythingInbetween = R.range(-n, n+1);
+// symRange 3 = [-3, -2, -1, 0, 1, 2, 3]
+//symRange :: Number ->  [[Number]]
+const symRange = n => R.range(-n, n+1)
+
+// neighboursOfDist :: Number -> [[Number]]
+const neighboursOfDist_=  (n) => {
+    const extremes = [-n, n];
+    //const everythingInbetween = symRange(n);
     //const prod_1 = R.xprod(borders, everythingInbetween);
     //const prod_2 = R.flip(R.xprod)(borders, everythingInbetween);
     //return R.union(prod_1, prod_2)
-    return R.converge(R.union)( cloneAndFlip(R.xprod)) (borders, everythingInbetween); // We are doing something like a * b + b * a      (here * : cross product , + : union)
+    return R.converge(R.union)( cloneAndFlip(R.xprod)) (extremes, symRange(n)); // We are doing something like a * b + b * a      (here * : cross product , + : union)
     // return R.converge(R.union, [R.xprod, R.flip(R.xprod)])(borders, everythingInbetween);
 }
 
+const neighboursOfDist = (n) => {
+    if(n <=0){
+        return []
+    }
+    const extremes = [-n, n];
+    return R.concat( R.xprod(extremes, symRange(n)), 
+                R.xprod( symRange(n-1), extremes) )
+}
 
 
-//relative to my position sphere like definition everything between is included
+//some optimization:
+/*
+A={(x,y) | x in {-2,2} y in [-2,2]}
+B={(x,y) | y in {-2,2} x in [-2,2]}
+
+A inter B = { x in {-2, 2}, y in {-2, 2}}
+
+an alternative B
+B'={(x,y) | y in {-2,2} x in [-1,1]}
+
+A inter B' =  {}
+
+
+*/
+
+
+
+//relative to my position; ball like definition everything between is included
 // neighboursWithin :: Number -> [[Number, Number]]
 const neighboursWithin = R.converge(coordinatesInRange, [R.negate, R.inc]);
 //
