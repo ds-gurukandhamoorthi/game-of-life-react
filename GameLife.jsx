@@ -153,7 +153,10 @@ const doILive = (x,y, census,nbCol, nbRow)=>{
 }
 
 // createMatrix :: Number -> Number -> (Number -> Number -> a) -> [[a]]
-const createMatrix =(nbRow, nbCol, func) => R.splitEvery(nbCol)(R.xprod(R.range(0,nbRow), R.range(0,nbCol)).map(func));
+//Using the js array map has an interesting but not wanted side-effect
+//const createMatrix =(nbRow, nbCol, func) => R.splitEvery(nbCol)(R.xprod(R.range(0,nbRow), R.range(0,nbCol)).map(func));
+const createMatrix =(nbRow, nbCol, func) => R.splitEvery(nbCol)(R.map(func,R.xprod(R.range(0,nbRow), R.range(0,nbCol))));
+
 
 // getNextGenerationFunc :: [[Boolean]] -> Number -> Number -> [[Boolean]]
 const getNextGenerationFunc=(census, nbCol, nbRow)=>{
