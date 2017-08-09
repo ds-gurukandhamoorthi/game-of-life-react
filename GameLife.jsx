@@ -48,13 +48,27 @@ const Matrix = (props)=>{
 
 }
 
+    const getValueAtIndices=(coords) => {
+        const getValueAtCoord = coord => R.reduce(R.pipe, R.identity, R.map(R.nth,coord))
+        const listOfGettingFuncs = R.map(getValueAtCoord, coords)
+        return R.o(R.ap(listOfGettingFuncs), R.of)
+    }
+    const setValueAtIndices=R.curry((coords, values,matrix) => {
+        let resMatrix =R.clone(matrix);
+        updateAt = (coord,value) => {
+            const [x,y] =coord;
+            resMatrix[x][y] = value;
+        }
+        coords.map((coord,i) => updateAt(coord, values[i]));
+        return resMatrix;
+    })
+
 // const enrich=(min, step)=>R.when(R.gt(min), R.add(step))
 // const impoverish=(max, step)=>R.when(R.lte(max), R.add(-step))
 
 // const inTheRange=(min, maxExclude) => R.pipe(enrich(0,maxExclude), impoverish(maxExclude, maxExclude))
 
-const getValueAtCoord = coord => R.reduce(R.pipe, R.identity, R.map(R.nth,coord))
-const isAlive = getValueAtCoord;
+//const isAlive = getValueAtCoord;
 
 
 //There is some mystery over (x,y) and (i,j) ... Make sure you use the correct thing. A Test suite should help
@@ -118,6 +132,10 @@ const neighs=neighboursOfDist(1)
 
 const absoluteNeighbours =(nbCol, nbRow, me) => neighs.map(R.o(forceCoordInTheMatrixRange(nbCol,nbRow), R.zipWith(R.add, me)));
 
+const neighboursLens = (nbCol,nbRow, me)=>{
+    const coords = absoluteNeighbours(nbCol,nbRow,me);
+    return R.lens(getValueAtIndices(coords),setValueAtIndices(coords))
+}
 //absolute position
 
 const immediateNeighbours=(nbCol,nbRow,me) => absoluteNeighbours(nbCol,nbRow, me)
@@ -126,11 +144,16 @@ const immediateNeighbours=(nbCol,nbRow,me) => absoluteNeighbours(nbCol,nbRow, me
 const doILive = (x,y, census,nbCol, nbRow)=>{
     const me = [x,y]
     //const myNeighs=neighSqrs.map(R.zipWith(R.add,me))
-    const myNeighs = immediateNeighbours(nbCol,nbRow,me)
-    const getLifeStatus= (neigh)=> isAlive(neigh)( census);
-    const neighCount =R.countBy(R.identity, myNeighs.map(getLifeStatus))[true] || 0;
+    //const myNeighs = immediateNeighbours(nbCol,nbRow,me)
+    
+    //console.log(R.view(neighboursLens(nbCol,nbRow,me))(census));
+    // const getLifeStatus= (neigh)=> isAlive(neigh)( census);
+    // const neighCount =R.countBy(R.identity, myNeighs.map(getLifeStatus))[true] || 0;
+    const neighs = R.view(neighboursLens(nbCol,nbRow,me))(census);
+    const neighCount = R.countBy(R.identity,neighs)[true] || 0;
+
     // const myLife = isAlive(x,y, census, nbCol,nbRow);
-     const myLife = isAlive([x,y])(census);
+     const myLife = census[x][y];
     //console.log('doIlive' + (t1 -t0) + 'milliseconds');
     return (myLife && R.contains(neighCount,[2,3])) || neighCount === 3 
 
