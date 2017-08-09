@@ -132,30 +132,32 @@ const neighs=neighboursOfDist(1)
 
 const absoluteNeighbours =(nbCol, nbRow, me) => neighs.map(R.o(forceCoordInTheMatrixRange(nbCol,nbRow), R.zipWith(R.add, me)));
 
-const neighboursLens = (nbCol,nbRow, me)=>{
+const neighboursLens = R.memoize((nbCol,nbRow, me)=>{
     const coords = absoluteNeighbours(nbCol,nbRow,me);
     return R.lens(getValueAtIndices(coords),setValueAtIndices(coords))
-}
+});
 //absolute position
 
-const immediateNeighbours=(nbCol,nbRow,me) => absoluteNeighbours(nbCol,nbRow, me)
 
 // doILive :: Number -> Number -> [[Number]] -> Number -> Number -> Boolean
-const doILive = (x,y, census,nbCol, nbRow)=>{
-    const me = [x,y]
+const doILive = (myCoord, census,nbCol, nbRow)=>{
+    var t0 = performance.now();
     //const myNeighs=neighSqrs.map(R.zipWith(R.add,me))
     //const myNeighs = immediateNeighbours(nbCol,nbRow,me)
     
     //console.log(R.view(neighboursLens(nbCol,nbRow,me))(census));
     // const getLifeStatus= (neigh)=> isAlive(neigh)( census);
     // const neighCount =R.countBy(R.identity, myNeighs.map(getLifeStatus))[true] || 0;
-    const neighs = R.view(neighboursLens(nbCol,nbRow,me))(census);
+    const neighs = R.view(neighboursLens(nbCol,nbRow,myCoord))(census);
     // const neighCount = (R.filter(R.identity,neighs)).length;
     const neighCount = neighs.filter(x=>x).length;
 
     // const myLife = isAlive(x,y, census, nbCol,nbRow);
+    const [x,y] = myCoord;
      const myLife = census[x][y];
     //console.log('doIlive' + (t1 -t0) + 'milliseconds');
+    var t1 = performance.now();
+    //console.log('function do I live' + (t1 -t0) + 'milliseconds');
     return (myLife && R.contains(neighCount,[2,3])) || neighCount === 3 
 
 }
@@ -170,7 +172,7 @@ const createMatrix =(nbRow, nbCol, func) => R.splitEvery(nbCol)(R.map(func,R.xpr
 const getNextGenerationFunc=(census, nbCol, nbRow)=>{
     var t0 = performance.now();
     //func :: [Number, Number]  -> Boolean
-    const func = (item) => doILive(item[0],item[1], census,nbCol,nbRow);
+    const func = (item) => doILive(item, census,nbCol,nbRow);
     const res = createMatrix(nbRow, nbCol, func);
     //console.log(JSON.stringify(res));
     // console.log( `
