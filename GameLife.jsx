@@ -52,19 +52,14 @@ const Matrix = (props)=>{
 // const impoverish=(max, step)=>R.when(R.lte(max), R.add(-step))
 
 // const inTheRange=(min, maxExclude) => R.pipe(enrich(0,maxExclude), impoverish(maxExclude, maxExclude))
-// inTheRange :: Number -> Number -> Number
-const inTheRange=(min, maxExclude) => R.mathMod(R.__, maxExclude)
 
-// isAlive :: Number -> Number -> [[Number]] -> Number -> Number -> Boolean
-const isAlive = (x,y, census, nbCol, nbRow)=>{
+const getValueAtCoord = coord => R.reduce(R.pipe, R.identity, R.map(R.nth,coord))
+const isAlive = getValueAtCoord;
 
-    const x_=inTheRange(0, nbRow)(x)
-    const y_=inTheRange(0, nbCol)(y)
-    // console.log(`${x} becomes ${x_} with nbCol=${nbCol}
-    // ${y} becomes ${y_}
-    // `);
-    return census[x_][y_];
-}
+
+//There is some mystery over (x,y) and (i,j) ... Make sure you use the correct thing. A Test suite should help
+const forceCoordInTheMatrixRange=(nbCol,nbRow) => R.zipWith(R.flip(R.mathMod),[nbRow,nbCol])
+
 
 
 //can be seen as range Squared  as it is range * range
@@ -85,16 +80,6 @@ const cloneAndFlip =(func) => [func, R.flip(func)]
 //symRange :: Number ->  [[Number]]
 const symRange = n => R.range(-n, n+1)
 
-// neighboursOfDist :: Number -> [[Number]]
-const neighboursOfDist_=  (n) => {
-    const extremes = [-n, n];
-    //const everythingInbetween = symRange(n);
-    //const prod_1 = R.xprod(borders, everythingInbetween);
-    //const prod_2 = R.flip(R.xprod)(borders, everythingInbetween);
-    //return R.union(prod_1, prod_2)
-    return R.converge(R.union)( cloneAndFlip(R.xprod)) (extremes, symRange(n)); // We are doing something like a * b + b * a      (here * : cross product , + : union)
-    // return R.converge(R.union, [R.xprod, R.flip(R.xprod)])(borders, everythingInbetween);
-}
 
 const neighboursOfDist = (n) => {
     if(n <=0){
@@ -130,23 +115,22 @@ const neighboursWithin = R.converge(coordinatesInRange, [R.negate, R.inc]);
 // neighs :: [[Number,Number]]
 const neighs=neighboursOfDist(1)
 
-console.log(neighs)
+
+const absoluteNeighbours =(nbCol, nbRow, me) => neighs.map(R.o(forceCoordInTheMatrixRange(nbCol,nbRow), R.zipWith(R.add, me)));
 
 //absolute position
-// absoluteNeighbours :: [Number, Number] -> [[Number, Number]] 
-const absoluteNeighbours = me => neighs.map(R.zipWith(R.add, me));
 
-// immediateNeighbours :: [Number, Number] -> [[Number, Number]]
-const immediateNeighbours = absoluteNeighbours
+const immediateNeighbours=(nbCol,nbRow,me) => absoluteNeighbours(nbCol,nbRow, me)
 
 // doILive :: Number -> Number -> [[Number]] -> Number -> Number -> Boolean
 const doILive = (x,y, census,nbCol, nbRow)=>{
     const me = [x,y]
     //const myNeighs=neighSqrs.map(R.zipWith(R.add,me))
-    const myNeighs = immediateNeighbours(me)
-    const getLifeStatus= (neigh)=> isAlive(neigh[0], neigh[1], census, nbCol, nbRow)
+    const myNeighs = immediateNeighbours(nbCol,nbRow,me)
+    const getLifeStatus= (neigh)=> isAlive(neigh)( census);
     const neighCount =R.countBy(R.identity, myNeighs.map(getLifeStatus))[true] || 0;
-    const myLife = isAlive(x,y, census, nbCol,nbRow);
+    // const myLife = isAlive(x,y, census, nbCol,nbRow);
+     const myLife = isAlive([x,y])(census);
     //console.log('doIlive' + (t1 -t0) + 'milliseconds');
     return (myLife && R.contains(neighCount,[2,3])) || neighCount === 3 
 
