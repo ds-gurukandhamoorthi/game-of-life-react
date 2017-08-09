@@ -150,7 +150,8 @@ const doILive = (x,y, census,nbCol, nbRow)=>{
     // const getLifeStatus= (neigh)=> isAlive(neigh)( census);
     // const neighCount =R.countBy(R.identity, myNeighs.map(getLifeStatus))[true] || 0;
     const neighs = R.view(neighboursLens(nbCol,nbRow,me))(census);
-    const neighCount = R.countBy(R.identity,neighs)[true] || 0;
+    // const neighCount = (R.filter(R.identity,neighs)).length;
+    const neighCount = neighs.filter(x=>x).length;
 
     // const myLife = isAlive(x,y, census, nbCol,nbRow);
      const myLife = census[x][y];
