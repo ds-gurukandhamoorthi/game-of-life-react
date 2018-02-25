@@ -1,11 +1,11 @@
 const Cell = (props)=>{
-    const {i, j, cellSize, onClick, onMouseOver, isAlive} = props;
+    const {i, j, cellSize, onClick,  isAlive} = props;
     const colr=(isAlive? 'green': 'lightgray')
-    return <rect x={i*cellSize} y={j*cellSize} width={cellSize} height={cellSize} fill={colr} stroke='gray' onClick={()=>onClick(j,i)} onMouseOver={()=> onMouseOver(j,i)}/>
+    return <rect x={i*cellSize} y={j*cellSize} width={cellSize} height={cellSize} fill={colr} stroke='gray' onClick={()=>onClick(j,i)} />
 }
 
 const HorizCells = (props)=>{
-    const {j, cellSize, onClick, nbCol, lineCensus, onMouseOver} = props;
+    const {j, cellSize, onClick, nbCol, lineCensus} = props;
     return (
         <g>
             {
@@ -16,7 +16,6 @@ const HorizCells = (props)=>{
                         j={j}
                         cellSize={cellSize}
                         onClick={onClick}
-                        onMouseOver={onMouseOver}
                         isAlive={lineCensus[i]}
                     />
                 })
@@ -27,7 +26,7 @@ const HorizCells = (props)=>{
 
 }
 const Matrix = (props)=>{
-    const {cellSize, onClick, nbCol, nbRow, census, onMouseOver} = props;
+    const {cellSize, onClick, nbCol, nbRow, census} = props;
     return (
         <g>
             {
@@ -37,7 +36,6 @@ const Matrix = (props)=>{
                         j={j}
                         cellSize={cellSize}
                         onClick={onClick} 
-                        onMouseOver={onMouseOver} 
                         nbCol={nbCol}
                         lineCensus={census[j]}
                     />
@@ -47,12 +45,13 @@ const Matrix = (props)=>{
     );
 
 }
+const    getValueAtIndices=(coords) => {
+    //const getValueAtCoord = coord => R.reduce(R.pipe, R.identity, R.map(R.nth,coord));
+    const getValueAtCoord = coord => (R.pipe(R.nth(coord[0]),R.nth(coord[1])));
+    const listOfGettingFuncs = R.map(getValueAtCoord, coords);
+    return R.o(R.ap(listOfGettingFuncs), R.of);
+};
 
-    const getValueAtIndices=(coords) => {
-        const getValueAtCoord = coord => R.reduce(R.pipe, R.identity, R.map(R.nth,coord))
-        const listOfGettingFuncs = R.map(getValueAtCoord, coords)
-        return R.o(R.ap(listOfGettingFuncs), R.of)
-    }
     const setValueAtIndices=R.curry((coords, values,matrix) => {
         let resMatrix =R.clone(matrix);
         updateAt = (coord,value) => {
@@ -142,21 +141,14 @@ const neighboursLens = R.memoize((nbCol,nbRow, me)=>{
 // doILive :: Number -> Number -> [[Number]] -> Number -> Number -> Boolean
 const doILive = (myCoord, census,nbCol, nbRow)=>{
     var t0 = performance.now();
-    //const myNeighs=neighSqrs.map(R.zipWith(R.add,me))
-    //const myNeighs = immediateNeighbours(nbCol,nbRow,me)
-    
-    //console.log(R.view(neighboursLens(nbCol,nbRow,me))(census));
-    // const getLifeStatus= (neigh)=> isAlive(neigh)( census);
-    // const neighCount =R.countBy(R.identity, myNeighs.map(getLifeStatus))[true] || 0;
     const neighs = R.view(neighboursLens(nbCol,nbRow,myCoord))(census);
-    // const neighCount = (R.filter(R.identity,neighs)).length;
     const neighCount = neighs.filter(x=>x).length;
 
     // const myLife = isAlive(x,y, census, nbCol,nbRow);
     const [x,y] = myCoord;
      const myLife = census[x][y];
-    //console.log('doIlive' + (t1 -t0) + 'milliseconds');
     var t1 = performance.now();
+    console.log('doIlive' + (t1 -t0) + 'milliseconds');
     //console.log('function do I live' + (t1 -t0) + 'milliseconds');
     return (myLife && R.contains(neighCount,[2,3])) || neighCount === 3 
 
@@ -173,13 +165,15 @@ const getNextGenerationFunc=(census, nbCol, nbRow)=>{
     var t0 = performance.now();
     //func :: [Number, Number]  -> Boolean
     const func = (item) => doILive(item, census,nbCol,nbRow);
+    var t1 = performance.now();
     const res = createMatrix(nbRow, nbCol, func);
     //console.log(JSON.stringify(res));
     // console.log( `
     // Is ${R.equals(res, getNextGeneration(census,nbCol,nbRow))}
     // `);
-    var t1 = performance.now();
-    console.log('function purely' + (t1 -t0) + 'milliseconds');
+    var t2 = performance.now();
+    // console.log('function doILive' + (t1 -t0) + 'milliseconds');
+    // console.log('function createMatrix' + (t2 -t1) + 'milliseconds');
 
     return res
 }
@@ -229,7 +223,6 @@ class GameLife extends React.Component{
             nbRow,
         };
         this.onChoose=this.onChoose.bind(this);
-        this.showDetails=this.showDetails.bind(this);
 
 
         this.onClear=this.onClear.bind(this);
@@ -305,14 +298,6 @@ class GameLife extends React.Component{
             currGen: 0,
         });
     }
-    showDetails(i,j){
-        const {census,nbCol,nbRow} = this.state;
-        console.log(`details about ${i} ${j}`);
-        console.log(isAlive(i,j, census, nbCol, nbRow));
-        //console.log(neighbours(i,j, census, nbCol, nbRow));
-        console.log(doILive(i,j, census, nbCol, nbRow));
-
-    }
     onChoose(i, j){
         // console.log(`chosen ${i} ${j}`);
         const {census} = this.state;
@@ -334,7 +319,7 @@ class GameLife extends React.Component{
             <div className='container'>
                 <h2>Gen : {currGen} </h2>
                 <svg height={height} width={width}>
-                    <Matrix cellSize={cellSize} nbCol={nbCol} nbRow={nbRow} onClick={this.onChoose} onMouseOver={this.showDetails} census={census}/>
+                    <Matrix cellSize={cellSize} nbCol={nbCol} nbRow={nbRow} onClick={this.onChoose}  census={census}/>
                     <rect width={width} height={height} fill='none' stroke='#000000'/>
                 </svg>
                 <br />
